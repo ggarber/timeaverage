@@ -1,0 +1,100 @@
+plugins {
+    id 'groovy'
+    id 'jacoco'
+    id 'project-report'
+    id 'ru.vyarus.java-lib' version '1.0.4'
+    id 'ru.vyarus.github-info' version '1.1.0'
+    id 'ru.vyarus.animalsniffer' version '1.2.0'
+    id 'ru.vyarus.quality' version '2.0.0'
+    id 'com.github.kt3k.coveralls' version '2.6.3'
+    id 'com.jfrog.bintray' version '1.7.1'
+    id 'net.researchgate.release' version '2.4.1'
+    id 'com.github.ben-manes.versions' version '0.13.0'
+}
+
+sourceCompatibility = 1.6
+
+wrapper {
+    gradleVersion = 3.0
+}
+
+repositories { jcenter(); mavenCentral(); mavenLocal() }
+dependencies {
+    signature 'org.codehaus.mojo.signature:java16:1.1@signature'
+
+    provided 'com.google.code.findbugs:jsr305:3.0.1'
+    provided 'com.google.code.findbugs:annotations:3.0.1'
+
+    compile 'org.slf4j:slf4j-api:1.7.21'
+
+    testCompile 'ch.qos.logback:logback-classic:1.1.7'
+    testCompile 'org.slf4j:jul-to-slf4j:1.7.21'
+    testCompile 'org.spockframework:spock-core:1.0-groovy-2.4'
+}
+
+group = 'com.ggarber'
+description = 'Generate average of values in a specific time window'
+
+github {
+    user = 'ggarber'
+    license = 'MIT'
+}
+
+pom {
+    developers {
+        developer {
+            id 'ggarber'
+            name 'Gustavo'
+            email 'gustavogb@gmail.com'
+        }
+    }
+}
+
+bintray {
+    user = findProperty('bintrayUser')
+    key = findProperty('bintrayKey')
+    publications = ['maven']
+    dryRun = false
+    publish = true
+    pkg {
+        repo = 'ggarber'
+        name = project.name
+        desc = project.description
+        labels = []
+        publicDownloadNumbers = true
+        version {
+            gpg {
+                sign = false
+                passphrase = findProperty('gpgPassphrase')
+            }
+            mavenCentralSync {
+                sync = false
+                user = findProperty('sonatypeUser')
+                password = findProperty('sonatypePassword')
+            }
+        }
+    }
+}
+
+afterReleaseBuild {
+    dependsOn = [bintrayUpload]
+    doLast {
+        logger.warn "RELEASED $project.group:$project.name:$project.version"
+    }
+}
+
+test {
+    testLogging {
+        events 'skipped', 'failed', 'standard_error'
+        exceptionFormat 'full'
+    }
+    maxHeapSize = '512m'
+}
+
+dependencyUpdates.revision = 'release'
+jacocoTestReport.reports.xml.enabled = true
+
+task showDependenciesTree(dependsOn: 'htmlDependencyReport', group: 'help', description:
+        'Generates dependencies tree report and opens it in browser') << {
+    java.awt.Desktop.getDesktop().open(file('/build/reports/project/dependencies/root.html'))
+}
